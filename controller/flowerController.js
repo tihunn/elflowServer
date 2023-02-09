@@ -1,4 +1,4 @@
-const {Flower} = require("../modelsORM")
+const {Flower, Sort, Image} = require("../modelsORM")
 const uuid = require("uuid");
 const path = require("path");
 const ApiError = require("../error/ApiError")
@@ -48,12 +48,19 @@ class flowerController {
                 price,
                 wholesale,
                 description,
-                img: fileName
+            })
+            const sort = await Sort.create({
+                flowerId: flower.id
+            })
+            const image = await Image.create({
+                flowerId: flower.id,
+                sortId: sort.id,
+                nameImage: fileName
             })
 
             if (imgDestruction) {await imgDestruction.mv(path.resolve(__dirname, "..", "static", fileName))}
 
-            return res.json(flower)
+            return res.json({flower, sort, image})
         } catch (e) {
             next(ApiError.badRequest(e.message))
         }
@@ -153,8 +160,25 @@ class flowerController {
             }
 
             const model = await Flower.findAndCountAll( completedParamQuery( isQuery() ) )
-            if (model.length === 0) {return next( ApiError.notFound("параметр не найден") )}
-            res.json(model)
+            if (model.length === 0) {return next( ApiError.notFound("параметр не найден или какая-то внутреняя ошибка") )}
+
+            const arrFlowerId = []
+            model.rows.forEach( flower => {
+                arrFlowerId.push( {flowerId: flower.id} )
+            })
+            const modelImages = await Image.findAll({where: {[Op.or]: arrFlowerId}})
+
+            model.rows.forEach( flower => {
+                flower.dataValues.image = []
+                modelImages.forEach( modelImage => {
+                    if (flower.id === modelImage.flowerId) {
+                        flower.dataValues.image.push( modelImage.nameImage )
+                    }
+                } )
+            })
+
+
+           res.json(model)
 
         } catch (e) {
             next(ApiError.badRequest(e.message))

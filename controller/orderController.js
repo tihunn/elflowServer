@@ -59,7 +59,6 @@ class orderController {
                 return res.json("Закажите цветы!")
             }
 
-            console.log(orders)
 
             let arrFlowerId = []
             orders.map(order => {
