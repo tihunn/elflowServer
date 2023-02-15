@@ -1,71 +1,12 @@
-const {Flower, Sort, Image} = require("../modelsORM")
+const {Flower, Image} = require("../modelsORM")
 const uuid = require("uuid");
 const path = require("path");
 const ApiError = require("../error/ApiError")
 const fs = require("fs");
-const {Op, where, attributes} = require("sequelize")
+const {Op} = require("sequelize")
+const imgController = require("../controller/imgController");
 
 class flowerController {
-    async create(req, res, next) {
-        if (!req.body.nameFlower || !req.body.height || !req.body.bloomTime) {
-            return next(ApiError.badRequest("не введено название цветка, высота или время цветения"))
-        }
-        if (!Number(req.body.height)) {
-            return next(ApiError.badRequest("введите только цифры"))
-        }
-
-        try {
-            let {
-                nameFlower,
-                height,
-                bloomTime,
-                lightSensitivity = "Солнце",
-                price = 200,
-                wholesale = 100,
-                available = 0,
-                description,
-            } = req.body
-            let imgDestruction = null
-            if (req.files) {
-                const {img} = req.files
-                imgDestruction = img
-            }
-
-
-            let fileName
-            if (imgDestruction) {
-                fileName = uuid.v4() + ".jpg"
-            } else {
-                fileName = "defFlower.jpg"
-            }
-
-            const flower = await Flower.create({
-                nameFlower,
-                height,
-                bloomTime,
-                lightSensitivity,
-                available,
-                price,
-                wholesale,
-                description,
-            })
-            const sort = await Sort.create({
-                flowerId: flower.id
-            })
-            const image = await Image.create({
-                flowerId: flower.id,
-                sortId: sort.id,
-                nameImage: fileName
-            })
-
-            if (imgDestruction) {await imgDestruction.mv(path.resolve(__dirname, "..", "static", fileName))}
-
-            return res.json({flower, sort, image})
-        } catch (e) {
-            next(ApiError.badRequest(e.message))
-        }
-    }
-
     async delete(req, res, next) {
         try {
             const {id} = req.params
@@ -78,33 +19,15 @@ class flowerController {
             if (!model) {
                 return next(ApiError.notFound("id не найден"))
             }
-            if (model.img) {
-                fs.unlinkSync(path.resolve(__dirname, "..", "static", model.img))
-            }
-            await Flower.destroy({where: {id}});
-            res.json(`растение с id:${id} удалено успешно`)
+
+            await Flower.destroy({where: {id}})
+
+            await imgController.delImg(req, res, next)
         } catch (e) {
             next(ApiError.badRequest(e.message))
         }
     }
 
-    async deleteFromDb(req, res, next) {
-        try {
-            const {id} = req.params
-
-            if (!id) {
-                return next(ApiError.badRequest("не введён id"))
-            }
-            const model = await Flower.findByPk(id)
-            if (!model) {
-                return next(ApiError.notFound("id не найден"))
-            }
-            await Flower.destroy({where: {id}});
-            res.json(`растение с id:${id} удалено успешно`)
-        } catch (e) {
-            next(ApiError.badRequest(e.message))
-        }
-    }
 
     async get(req, res, next) {
         try {
@@ -159,16 +82,16 @@ class flowerController {
                 return packedQuery
             }
 
-            const model = await Flower.findAndCountAll( completedParamQuery( isQuery() ) )
-            if (model.length === 0) {return next( ApiError.notFound("параметр не найден или какая-то внутреняя ошибка") )}
+            const flower = await Flower.findAndCountAll( completedParamQuery( isQuery() ) )
+            if (flower.length === 0) {return next( ApiError.notFound("параметр не найден или какая-то внутреняя ошибка") )}
 
             const arrFlowerId = []
-            model.rows.forEach( flower => {
+            flower.rows.forEach( flower => {
                 arrFlowerId.push( {flowerId: flower.id} )
             })
             const modelImages = await Image.findAll({where: {[Op.or]: arrFlowerId}})
 
-            model.rows.forEach( flower => {
+            flower.rows.forEach( flower => {
                 flower.dataValues.image = []
                 modelImages.forEach( modelImage => {
                     if (flower.id === modelImage.flowerId) {
@@ -178,13 +101,12 @@ class flowerController {
             })
 
 
-           res.json(model)
+           res.json(flower)
 
         } catch (e) {
             next(ApiError.badRequest(e.message))
         }
     }
-
 
 
     async update(req, res, next) {
@@ -203,20 +125,6 @@ class flowerController {
 
             const model = await Flower.findByPk(id)
 
-            let imgDestruction = null
-            if (req.files) {
-                const {img} = req.files
-                imgDestruction = img
-            }
-            let fileName
-            if (imgDestruction) {
-                fileName = uuid.v4() + ".jpg"
-                fs.unlinkSync(path.resolve(__dirname, "..", 'static', model.img))
-                await imgDestruction.mv(path.resolve(__dirname, "..", "static", fileName))
-            } else {
-                fileName = model.img
-            }
-
 
             model.nameFlower = nameFlower
             model.lightSensitivity = lightSensitivity
@@ -226,13 +134,61 @@ class flowerController {
             model.wholesale = Number(wholesale)
             model.available = Number(available)
             model.description = description
-            model.img = fileName
+
             const newModel = await model.save()
+
             res.json(newModel)
         } catch (e) {
             next(ApiError.badRequest(e.message))
         }
     }
+
+
+    async create(req, res, next) {
+        if (!req.body.nameFlower || !req.body.height || !req.body.bloomTime) {
+            return next(ApiError.badRequest("не введено название цветка, высота или время цветения"))
+        }
+        if (!Number(req.body.height)) {
+            return next(ApiError.badRequest("введите только цифры"))
+        }
+
+        try {
+            let {
+                nameFlower,
+                height,
+                bloomTime,
+                lightSensitivity = "Солнце",
+                price = 200,
+                wholesale = 100,
+                available = 0,
+                description,
+            } = req.body
+
+            height = Number(height)
+            price = Number(price)
+            wholesale = Number(wholesale)
+            available = Number(available)
+
+            const flower = await Flower.create({
+                nameFlower,
+                height,
+                bloomTime,
+                lightSensitivity,
+                available,
+                price,
+                wholesale,
+                description,
+            })
+
+            req.body.id = flower.id
+            await imgController.addImg(req, res, next)
+
+
+        } catch (e) {
+            next(ApiError.badRequest(e.message))
+        }
+    }
+
 
 }
 

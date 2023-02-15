@@ -1,4 +1,4 @@
-const {Flower, Basket, BasketFlower, User, Order, Catalog, CatalogFlower} = require("../modelsORM")
+const {Flower, Basket, BasketFlower, User, Order, Catalog, CatalogFlower, Image} = require("../modelsORM")
 const uuid = require("uuid");
 const path = require("path");
 const ApiError = require("../error/ApiError")
@@ -126,14 +126,52 @@ class catalogController {
                     )
                 )
 
+                const modelImages = await Image.findAll({
+                    where: {
+                        flowerId: {[Op.or]: arrFlowerId}
+                    }
+                })
+                catalogFlowers.rows.forEach( flower => {
+                    flower.dataValues.image = []
+                    modelImages.forEach( modelImage => {
+                        if (flower.id === modelImage.flowerId) {
+                            flower.dataValues.image.push( modelImage.nameImage )
+                        }
+                    } )
+                })
+
                 return res.json(catalogFlowers)
+
             } else {
-                const model = await Catalog.findAll()
-                return res.json(model)
+                const catalogs = await Catalog.findAll()
+                const binds = await CatalogFlower.findAll()
+                const arrFlowerId = []
+
+                for (let bind of binds) {
+                    arrFlowerId.push( {flowerId: bind.dataValues.flowerId} )
+                }
+
+                const images = await Image.findAll({
+                    where: {
+                         [Op.or]: arrFlowerId
+                    }
+                })
+
+                catalogs.forEach(catalog => {
+                    catalog.dataValues.image = []
+                    binds.forEach( bind => {
+                        let imgModel = images.find(img => img.dataValues.flowerId === bind.dataValues.flowerId )
+                        if (catalog.dataValues.id === bind.dataValues.catalogId && imgModel) {
+                            catalog.dataValues.image = [...catalog.dataValues.image, imgModel.dataValues.nameImage]
+                        }
+                    })
+                })
+
+                return res.json(catalogs)
             }
 
         } catch (e) {
-            next(ApiError.badRequest("Где запрос? Не ну напишите уж, что случилось, самому интересно."))
+            next(ApiError.badRequest(e))
         }
     }
 
