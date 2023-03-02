@@ -1,12 +1,12 @@
 FROM node:16-alpine
 
-WORKDIR /app
+WORKDIR .
 
-COPY elflowServer/package.json .
+COPY package.json .
 
 RUN npm install
 
-COPY . .
+COPY .. .
 
 EXPOSE 3007
 

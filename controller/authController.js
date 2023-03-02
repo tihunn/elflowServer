@@ -26,6 +26,7 @@ class authController {
         return res.json({token})
     }
 
+
     async login(req, res, next) {
         const {email, password} = req.body
         const user = await User.findOne({where: {email}})
@@ -40,9 +41,22 @@ class authController {
         return res.json({token})
     }
 
+
     async check(req, res) {
         const token = generatorJwt(req.user.id, req.user.email, req.user.role)
         return res.json({token})
+    }
+
+
+    async create_admin(req, res, next) {
+        try {
+            const admin = await User.findByPk(1)
+            admin.role = "admin"
+            await admin.save()
+            return res.json("Первый пользователь теперь admin")
+        } catch (e) {
+            return next(ApiError.badRequest("Возможно даже первого пользователя нету"))
+        }
     }
 }
 
