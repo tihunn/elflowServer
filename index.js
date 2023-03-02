@@ -26,7 +26,7 @@ const start = async () => {
         await sequelize.authenticate()
         await sequelize.sync()
         console.log('Connection has been established successfully.');
-        app.listen( port, host, () => console.log(`Server listens http://${host}:${port}`) )
+        app.listen( port, () => console.log(`Server listens http://${host}:${port}`) )
     } catch (e) {
         console.error('Unable to connect to the database:', e);
     }

@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "nodemon": "nodemon --inspect index.js",
-    "node": "node index.js",
+    "start": "node index.js",
     "test": "jest"
   },
   "keywords": [],
