@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "nodemon": "nodemon --inspect index.js",
+    "serve": "nodemon --legacy-watch index.js",
     "start": "node index.js",
     "test": "jest"
   },
