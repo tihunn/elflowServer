@@ -34,6 +34,10 @@ class imgController {
                     nameImage: file.name
                 })
 
+                const filePath = path.resolve(__dirname, "..", "static")
+                if (!fs.existsSync(filePath)) {
+                    fs.mkdirSync(filePath, {recursive: true})
+                }
                 await file.mv( path.resolve(__dirname, "..", "static", file.name) )
             }
 

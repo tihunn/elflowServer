@@ -2,6 +2,7 @@
 /static
 
 Dockerfile
+Dockerfile.prod
 
 .idea
 .gitignore
