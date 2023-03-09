@@ -6,6 +6,7 @@ const imgController = require("../controller/imgController");
 
 router.post("/img", roleMiddleware("admin"), imgController.addImg)
 router.delete("/img", roleMiddleware("admin"), imgController.delImg)
+router.get("/img/det", imgController.delt)
 
 
 module.exports = router

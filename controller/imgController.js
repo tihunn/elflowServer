@@ -49,6 +49,20 @@ class imgController {
     }
 
 
+
+    async delt(req, res, next) {
+        try {
+            const {id} = req.query
+            const image = await Image.findAll({where: {flowerId: id} })
+
+            return res.json(image)
+        }  catch (e) {
+            next(ApiError.badRequest(e.message))
+        }
+    }
+
+
+
     async delImg(req, res, next) {
         try {
             let {
@@ -60,15 +74,14 @@ class imgController {
             if (!nameImage) {
                 if (!id) { return next(ApiError.badRequest("Не отправлен flowerId параметром")) }
 
-                const image = await Image.findAll({where: {flowerId: id} })
+                const image = await Image.findAll({where: {flowerId: null} })
 
                 for (const file of image) {
                     fs.unlinkSync(path.resolve(__dirname, "..", 'static', file.nameImage))
                 }
 
-                await Flower.destroy({where: {id}})
-                await Image.destroy({where: {flowerId: id} })
-                await Sort.destroy({where: {flowerId: id} })
+                await Image.destroy({where: {flowerId: null} })
+                await Sort.destroy({where: {flowerId: null} })
             } else {
 
                 const image = await Image.findAll({where: {nameImage} })

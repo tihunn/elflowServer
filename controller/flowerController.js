@@ -20,6 +20,11 @@ class flowerController {
                 return next(ApiError.notFound("id не найден"))
             }
 
+            // need del sort
+
+            // need del img
+            // need del catalog_flower
+
             await Flower.destroy({where: {id}})
 
             await imgController.delImg(req, res, next)
