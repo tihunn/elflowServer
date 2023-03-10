@@ -1,4 +1,4 @@
-const {Flower, Basket, BasketFlower, User, Order} = require("../modelsORM")
+const {Flower, Basket, BasketFlower, User, Order, Image} = require("../modelsORM")
 const uuid = require("uuid");
 const path = require("path");
 const ApiError = require("../error/ApiError")
@@ -71,6 +71,17 @@ class orderController {
                     }
                 }
             })
+
+
+            let img = await Image.findAll({
+                where: {
+                    flowerId: {
+                        [Op.or]: arrFlowerId
+                    }
+                }
+            })
+
+            // models merging
             flowers.map(flower => {
                 orders.forEach(order => {
                     if (flower.id === order.flowerId) {
@@ -78,6 +89,14 @@ class orderController {
                         flower.dataValues.isAssembled = order.isAssembled
                     }
                 })
+
+                let arrImg = []
+                img.forEach(img => {
+                    if (flower.id === img.flowerId) {
+                        arrImg.push( img.nameImage )
+                    }
+                })
+                flower.dataValues.image = arrImg
             })
 
 
