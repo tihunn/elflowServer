@@ -26,6 +26,7 @@ const Flower = sequelize.define('flower', {
     available: {type: DataTypes.INTEGER},
     price: {type: DataTypes.INTEGER},
     wholesale: {type: DataTypes.INTEGER},
+    alternativeNames: {type: DataTypes.STRING},
     description: {type: DataTypes.STRING},
 })
 

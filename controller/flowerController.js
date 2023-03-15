@@ -5,6 +5,7 @@ const ApiError = require("../error/ApiError")
 const fs = require("fs");
 const {Op} = require("sequelize")
 const imgController = require("../controller/imgController");
+const sequelize = require("sequelize");
 
 class flowerController {
     async delete(req, res, next) {
@@ -34,13 +35,14 @@ class flowerController {
     }
 
 
+
     async get(req, res, next) {
         try {
             let isKeysValid = (variable) => {
-                let valids = ["id", "nameFlower", "bloomTime", "lightSensitivity",
+                let valids = ["id", "bloomTime", "lightSensitivity",
                     "available", "price", "wholesale", "description", "img"]
                 return valids.some(valid => valid === variable)
-                }
+            }
 
             let arrAttr = () => {
                 let arr = []
@@ -54,11 +56,23 @@ class flowerController {
                     }
                 }
 
+                let {nameFlower} = req.query
+                if (nameFlower) {
+                    arr.push({
+                        nameFlower: { [Op.iLike]: `%${nameFlower}%` }
+                    })
+                    arr.push({
+                        alternativeNames: { [Op.iLike]: `%${nameFlower}%` }
+                    })
+                }
+
                 let {heightMax, heightMin} = req.query
                 if (heightMax > 1) {
-                    arr.push( { height: {[Op.between]: [heightMin, heightMax]} } )
+                    arr.push({
+                        height: { [Op.between]: [heightMin, heightMax] }
+                    })
                 }
-                
+
                 return arr
             }
 
@@ -74,8 +88,12 @@ class flowerController {
                 let queryLength = Object.keys(req.query).length
                 let {id} = req.params
 
-                if (id) { return { where: {id} } }
-                if ( queryLength > 2 ) { return packingQuery()}
+                if (id) {
+                    return {where: {id}}
+                }
+                if (queryLength > 2) {
+                    return packingQuery()
+                }
             }
 
             let completedParamQuery = (packedQuery = {}) => {
@@ -87,26 +105,28 @@ class flowerController {
                 return packedQuery
             }
 
-            const flower = await Flower.findAndCountAll( completedParamQuery( isQuery() ) )
-            if (flower.length === 0) {return next( ApiError.notFound("параметр не найден или какая-то внутреняя ошибка") )}
+            const flower = await Flower.findAndCountAll(completedParamQuery(isQuery()))
+            if (flower.length === 0) {
+                return next(ApiError.notFound("параметр не найден или какая-то внутреняя ошибка"))
+            }
 
             const arrFlowerId = []
-            flower.rows.forEach( flower => {
-                arrFlowerId.push( {flowerId: flower.id} )
+            flower.rows.forEach(flower => {
+                arrFlowerId.push({flowerId: flower.id})
             })
             const modelImages = await Image.findAll({where: {[Op.or]: arrFlowerId}})
 
-            flower.rows.forEach( flower => {
+            flower.rows.forEach(flower => {
                 flower.dataValues.image = []
-                modelImages.forEach( modelImage => {
+                modelImages.forEach(modelImage => {
                     if (flower.id === modelImage.flowerId) {
-                        flower.dataValues.image.push( modelImage.nameImage )
+                        flower.dataValues.image.push(modelImage.nameImage)
                     }
-                } )
+                })
             })
 
 
-           res.json(flower)
+            res.json(flower)
 
         } catch (e) {
             next(ApiError.badRequest(e.message))
@@ -126,6 +146,7 @@ class flowerController {
                 wholesale,
                 available,
                 description,
+                alternativeNames
             } = req.body
 
             const model = await Flower.findByPk(id)
@@ -139,6 +160,7 @@ class flowerController {
             model.wholesale = Number(wholesale)
             model.available = Number(available)
             model.description = description
+            model.alternativeNames = alternativeNames
 
             const newModel = await model.save()
 
@@ -167,6 +189,7 @@ class flowerController {
                 wholesale = 100,
                 available = 0,
                 description,
+                alternativeNames
             } = req.body
 
             height = Number(height)
@@ -183,6 +206,7 @@ class flowerController {
                 price,
                 wholesale,
                 description,
+                alternativeNames
             })
 
             req.body.id = flower.id
