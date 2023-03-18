@@ -1,7 +1,8 @@
-const {User, Basket} = require("../modelsORM");
+const {User, Order} = require("../modelsORM");
 const bcrypt = require("bcrypt")
 const jsonwebtoken = require("jsonwebtoken")
 const ApiError = require("../error/ApiError");
+
 
 let generatorJwt = (id, email, role) => {
     return jsonwebtoken.sign(
@@ -23,6 +24,9 @@ class authController {
         const hashPassword = await bcrypt.hash(password, 5)
         const user = await User.create({email, password: hashPassword, name, number})
         const token = generatorJwt(user.id, user.email, user.role)
+
+        const emptyOrder = await Order.create({status: "draft", sumFlowers: 0, sumPrice: 0, userId: user.id })
+
         return res.json({token})
     }
 

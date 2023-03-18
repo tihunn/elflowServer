@@ -1,10 +1,7 @@
-const {Flower, Basket, BasketFlower, User, Order, Catalog, CatalogFlower, Image} = require("../modelsORM")
-const uuid = require("uuid");
-const path = require("path");
+const {Flower, Catalog, CatalogFlower, Image} = require("../modelsORM")
 const ApiError = require("../error/ApiError")
-const fs = require("fs");
-const {Op, where, attributes} = require("sequelize")
-const sequelize = require("pg/lib/connection");
+const {Op} = require("sequelize")
+// const sequelize = require("pg/lib/connection");
 
 class catalogController {
     async newCatalog(req, res, next) {

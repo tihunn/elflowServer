@@ -11,10 +11,16 @@ const User = sequelize.define( 'user', {
 })
 
 
+const OrderFlower = sequelize.define('order_flower', {
+    id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
+    numberFlowers: {type: DataTypes.INTEGER, defaultValue: 0}
+})
+
 const Order = sequelize.define('order', {
     id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
-    numberFlowers: {type: DataTypes.INTEGER},
-    isAssembled: {type: DataTypes.BOOLEAN}
+    sumFlowers: {type: DataTypes.INTEGER},
+    sumPrice: {type: DataTypes.INTEGER},
+    status: {type: DataTypes.STRING}
 })
 
 const Flower = sequelize.define('flower', {
@@ -44,20 +50,12 @@ const Image = sequelize.define('image', {
     nameImage: {type: DataTypes.STRING}
 })
 
-const Sort = sequelize.define('sort', {
-    id: {type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true},
-    nameSort: {type: DataTypes.STRING, defaultValue: "Обычный"}
-})
-
 
 User.hasOne(Order)
 Order.belongsTo(User)
 
-Flower.hasMany(Order)
-Order.belongsTo(Flower)
-
-Sort.hasOne(Order)
-Order.belongsTo(Sort)
+Order.belongsToMany(Flower, {through: OrderFlower})
+Flower.belongsToMany(Order, {through: OrderFlower})
 
 Flower.belongsToMany(Catalog, {through: CatalogFlower})
 Catalog.belongsToMany(Flower, {through: CatalogFlower})
@@ -65,19 +63,14 @@ Catalog.belongsToMany(Flower, {through: CatalogFlower})
 Flower.hasMany(Image)
 Image.belongsTo(Flower)
 
-Sort.hasMany(Image)
-Image.belongsTo(Sort)
-
-Flower.hasOne(Sort)
-Sort.belongsTo(Flower)
 
 
 module.exports = {
     User,
     Flower,
     Order,
+    OrderFlower,
     Catalog,
     CatalogFlower,
     Image,
-    Sort
 }

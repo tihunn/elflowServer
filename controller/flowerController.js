@@ -1,11 +1,8 @@
 const {Flower, Image} = require("../modelsORM")
-const uuid = require("uuid");
-const path = require("path");
 const ApiError = require("../error/ApiError")
-const fs = require("fs");
 const {Op} = require("sequelize")
 const imgController = require("../controller/imgController");
-const sequelize = require("sequelize");
+
 
 class flowerController {
     async delete(req, res, next) {
@@ -21,7 +18,7 @@ class flowerController {
                 return next(ApiError.notFound("id не найден"))
             }
 
-            // need del sort
+
 
             // need del img
             // need del catalog_flower

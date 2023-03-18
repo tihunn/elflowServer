@@ -1,21 +1,21 @@
-const {Flower, Sort, Image} = require("../modelsORM")
+const {Image} = require("../modelsORM")
 const uuid = require("uuid");
 const path = require("path");
 const ApiError = require("../error/ApiError")
 const fs = require("fs");
-const {Op} = require("sequelize")
+const Sharp = require("sharp");
+
 
 class imgController {
     async addImg(req, res, next) {
         try {
             let {
-                nameSort,
                 id
             } = req.body
 
             if (!id) { return next(ApiError.badRequest("не введён flowerId")) }
             if (!req.files) { return next(ApiError.badRequest("файлы не переданы")) }
-            if (!nameSort) { nameSort = "Обычный" }
+
 
 
             const arrFiles = Object.values(req.files)
@@ -24,21 +24,33 @@ class imgController {
                 const fileExtension = file.name.split(".").pop()
                 file.name =  uuid.v4() + "." + fileExtension
 
-                const sort = await Sort.findOrCreate({
-                    where: {flowerId: id, nameSort}
-                })
 
                 await Image.create({
                     flowerId: id,
-                    sortId: sort[0].dataValues.id,
                     nameImage: file.name
                 })
 
                 const filePath = path.resolve(__dirname, "..", "static")
+                const filePathCompressed = path.resolve(__dirname, "..", "static", "compressed")
                 if (!fs.existsSync(filePath)) {
                     fs.mkdirSync(filePath, {recursive: true})
                 }
+                if (!fs.existsSync(filePathCompressed)) {
+                    fs.mkdirSync(filePathCompressed, {recursive: true})
+                }
                 await file.mv( path.resolve(__dirname, "..", "static", file.name) )
+
+                await Sharp( path.resolve(__dirname, "..", "static", file.name) )
+                    .resize({ width: 224, height: 224 })
+                    .toFormat("jpeg")
+                    .jpeg({ mozjpeg: true })
+                    .toFile( path.resolve(__dirname, "..", "static", "compressed", file.name) , (err, info) => {
+                        if (err) {
+                            console.error(err);
+                        } else {
+                            console.log(info);
+                        }
+                    });
             }
 
 
@@ -78,10 +90,11 @@ class imgController {
 
                 for (const file of image) {
                     fs.unlinkSync(path.resolve(__dirname, "..", 'static', file.nameImage))
+                    fs.unlinkSync(path.resolve(__dirname, "..", 'static', "compressed", file.nameImage))
                 }
 
                 await Image.destroy({where: {flowerId: null} })
-                await Sort.destroy({where: {flowerId: null} })
+
             } else {
 
                 const image = await Image.findAll({where: {nameImage} })
