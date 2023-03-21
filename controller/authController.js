@@ -4,9 +4,14 @@ const jsonwebtoken = require("jsonwebtoken")
 const ApiError = require("../error/ApiError");
 
 
-let generatorJwt = (id, email, role) => {
+let generatorJwt = (id, email, role, name, number) => {
+    if (number && number.length !== 4) {
+        let firstStr = number.slice(0, 2)
+        number = `${firstStr}-******-${ number.slice(-4) }`
+    }
+
     return jsonwebtoken.sign(
-        {id, email, role},
+        {id, email, role, name, number},
         process.env.secretKey,
         {expiresIn: "24h"}
     )
@@ -23,9 +28,10 @@ class authController {
         }
         const hashPassword = await bcrypt.hash(password, 5)
         const user = await User.create({email, password: hashPassword, name, number})
-        const token = generatorJwt(user.id, user.email, user.role)
 
-        const emptyOrder = await Order.create({status: "draft", sumFlowers: 0, sumPrice: 0, userId: user.id })
+        const token = generatorJwt(user.id, user.email, user.role, user.name, user.number)
+
+        await Order.create({status: "draft", sumFlowers: 0, sumPrice: 0, userId: user.id})
 
         return res.json({token})
     }
@@ -41,13 +47,14 @@ class authController {
         if (!comparePassword) {
             return next(ApiError.internal("не верный пароль"))
         }
-        const token = generatorJwt(user.id, user.email, user.role)
+
+        const token = generatorJwt(user.id, user.email, user.role, user.name, user.number)
         return res.json({token})
     }
 
 
     async check(req, res) {
-        const token = generatorJwt(req.user.id, req.user.email, req.user.role)
+        const token = generatorJwt(req.user.id, req.user.email, req.user.role, req.user.name, req.user.number)
         return res.json({token})
     }
 
@@ -61,6 +68,36 @@ class authController {
         } catch (e) {
             return next(ApiError.badRequest("Возможно даже первого пользователя нету"))
         }
+    }
+
+
+    async update(req, res, next) {
+        try {
+            const {oldEmail, email, password, name, number} = req.body
+            let user = await User.findOne({where: {email: oldEmail}})
+
+            if (email) {
+                user.email = email
+            }
+            if (password) {
+                const hashPassword = await bcrypt.hash(password, 5)
+                user.password = hashPassword
+            }
+            if (name) {
+                user.name = name
+            }
+            if (number) {
+                user.number = number
+            }
+
+            user = await user.save()
+            const token = generatorJwt(user.id, user.email, user.role,  user.name, user.number)
+
+            return res.json({token})
+        } catch (e) {
+            return next(ApiError.badRequest(e))
+        }
+
     }
 }
 
