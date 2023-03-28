@@ -7,7 +7,7 @@ const roleMiddleware = require("../middleware/checkRoleMiddleware");
 
 router.post("/:id", authMiddleware, orderRouter.add)
 router.get("/", authMiddleware, orderRouter.get)
-router.delete("/:id", authMiddleware, orderRouter.del)
+router.delete("/:flowerId", authMiddleware, orderRouter.del)
 router.delete("/", authMiddleware, orderRouter.delAll)
 router.post("/", authMiddleware, orderRouter.assemble)
 router.get("/history", authMiddleware, orderRouter.history)
